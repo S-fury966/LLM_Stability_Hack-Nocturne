@@ -16,6 +16,12 @@ from visualization.heatmap import plot_heatmap
 from visualization.stability_map import StabilityMap
 from analysis.sensitivity_curve import SensitivityAnalyzer
 from visualization.sensitivity_plot import plot_sensitivity_curve
+from visualization.landscape_stability import StabilityLandscape
+
+from analysis.fragility_analyzer import FragilityAnalyzer
+
+from sklearn.metrics.pairwise import cosine_similarity
+import numpy as np
 
 
 # ----------------------------
@@ -64,17 +70,19 @@ def main():
     # Prompt Perturbation
     # --------------------------------
 
-    prompts = []
+    prompt_pairs = []
 
-    prompts.extend(paraphrase(prompt))
-    prompts.extend(emotional(prompt))
-    prompts.extend(structural(prompt))
-    prompts.extend(logical_flip(prompt))
-    prompts.extend(reasoning(prompt))
+    prompt_pairs.extend([(p, "paraphrase") for p in paraphrase(prompt)])
+    prompt_pairs.extend([(p, "emotional") for p in emotional(prompt)])
+    prompt_pairs.extend([(p, "structural") for p in structural(prompt)])
+    prompt_pairs.extend([(p, "logical_flip") for p in logical_flip(prompt)])
+    prompt_pairs.extend([(p, "reasoning") for p in reasoning(prompt)])
 
-    prompts = list(set(prompts))
+    prompt_pairs = list(set(prompt_pairs))
+    prompt_pairs = prompt_pairs[:12]
 
-    prompts = prompts[:8]
+    prompts = [p[0] for p in prompt_pairs]
+    types = [p[1] for p in prompt_pairs]
 
     print("Generated Perturbed Prompts:\n")
 
@@ -115,6 +123,11 @@ def main():
     similarity_score, similarity_matrix = similarity_model.similarity_score(
         embeddings
     )
+
+    sim_matrix = cosine_similarity(embeddings) ##chenged
+
+    divergences = 1 - sim_matrix.mean(axis=1)
+    hallucinations = divergences
 # --------------------------------
 # Sensitivity Analysis
 # --------------------------------
@@ -122,6 +135,18 @@ def main():
     sensitivity_analyzer = SensitivityAnalyzer(similarity_model)
 
     distances, divergences = sensitivity_analyzer.compute_curve(prompt,prompts,responses)
+
+
+    fragility = FragilityAnalyzer()
+
+    fragility_scores = fragility.compute(types, divergences)
+
+    print("\n==============================")
+    print("PROMPT FRAGILITY REPORT")
+    print("==============================\n")
+
+    for k, v in fragility_scores.items():
+        print(f"{k:<15} {round(v,3)}")
 
     
 
@@ -206,6 +231,8 @@ def main():
 
         prompt_scores.append(float(sim))
 
+    distances = [1 - s for s in prompt_scores]
+
     # --------------------------------
     # Visualizations
     # --------------------------------
@@ -223,6 +250,12 @@ def main():
     print("\nOpening sensitivity curve...\n")
 
     plot_sensitivity_curve(distances, divergences)
+
+    print("\nOpening stability landscape...\n")
+
+    landscape = StabilityLandscape()
+
+    landscape.plot(distances, divergences, hallucinations)
 
 
 if __name__ == "__main__":
