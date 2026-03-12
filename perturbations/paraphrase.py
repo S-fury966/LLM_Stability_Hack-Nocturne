@@ -4,14 +4,15 @@ def paraphrase(prompt):
 
         prompt,
 
-        "Explain " + prompt,
+        f"Explain the concept of {prompt}",
 
-        "Describe " + prompt,
+        f"Describe how {prompt} works",
 
-        "Give an explanation of " + prompt,
+        f"What does {prompt} mean?",
 
-        "What is " + prompt + "?"
+        f"Give a clear explanation of {prompt}",
 
+        f"Summarize the idea behind {prompt}"
     ]
 
     return prompts

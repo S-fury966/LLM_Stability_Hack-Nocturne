@@ -5,6 +5,7 @@ from perturbations.paraphrase import paraphrase
 from perturbations.emotional import emotional
 from perturbations.structural import structural
 from perturbations.logical_flip import logical_flip
+from perturbations.reasoning import reasoning
 
 from analysis.graph_analyzer import GraphAnalyzer
 from analysis.hallucination_detector import HallucinationDetector
@@ -13,6 +14,8 @@ from analysis.stability_analyzer import StabilityAnalyzer
 
 from visualization.heatmap import plot_heatmap
 from visualization.stability_map import StabilityMap
+from analysis.sensitivity_curve import SensitivityAnalyzer
+from visualization.sensitivity_plot import plot_sensitivity_curve
 
 
 # ----------------------------
@@ -50,7 +53,7 @@ def interpret_hallucination(score):
 
 def main():
 
-    prompt = "Explain blockchain technology"
+    prompt = "which is the third planet from the sun"
 
     print("\n==============================")
     print("Original Prompt:")
@@ -67,6 +70,7 @@ def main():
     prompts.extend(emotional(prompt))
     prompts.extend(structural(prompt))
     prompts.extend(logical_flip(prompt))
+    prompts.extend(reasoning(prompt))
 
     prompts = list(set(prompts))
 
@@ -111,6 +115,15 @@ def main():
     similarity_score, similarity_matrix = similarity_model.similarity_score(
         embeddings
     )
+# --------------------------------
+# Sensitivity Analysis
+# --------------------------------
+
+    sensitivity_analyzer = SensitivityAnalyzer(similarity_model)
+
+    distances, divergences = sensitivity_analyzer.compute_curve(prompt,prompts,responses)
+
+    
 
     # --------------------------------
     # Graph Stability
@@ -126,7 +139,7 @@ def main():
     # Hallucination Detection
     # --------------------------------
 
-    hallucination_detector = HallucinationDetector()
+    hallucination_detector = HallucinationDetector(similarity_model)
 
     hallucination_risk = hallucination_detector.detect(responses)
 
@@ -206,6 +219,10 @@ def main():
     stability_map = StabilityMap()
 
     stability_map.plot(prompts, prompt_scores)
+
+    print("\nOpening sensitivity curve...\n")
+
+    plot_sensitivity_curve(distances, divergences)
 
 
 if __name__ == "__main__":

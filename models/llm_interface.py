@@ -25,8 +25,16 @@ class LLMInterface:
 
     def generate(self, prompt, n=3):
 
-        # Batch prompts for faster GPU generation
-        prompts = [prompt] * n
+        instruction = f"""
+    Answer the question clearly and directly.
+
+    Question:
+    {prompt}
+
+    Answer:
+    """
+
+        prompts = [instruction] * n
 
         inputs = self.tokenizer(
             prompts,

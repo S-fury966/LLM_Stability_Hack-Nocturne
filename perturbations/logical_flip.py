@@ -2,12 +2,15 @@ def logical_flip(prompt):
 
     prompts = [
 
-        "Explain why " + prompt + " might be misunderstood",
+        f"Explain why someone might misunderstand {prompt}",
 
-        "Explain the opposite view of " + prompt,
+        f"What are common mistakes people make about {prompt}?",
 
-        "Explain common misconceptions about " + prompt
+        f"Explain the opposite perspective of {prompt}",
 
+        f"Why might someone disagree with {prompt}?",
+
+        f"What are the limitations of {prompt}?"
     ]
 
     return prompts

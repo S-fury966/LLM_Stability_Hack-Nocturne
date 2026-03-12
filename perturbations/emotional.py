@@ -2,33 +2,15 @@ def emotional(prompt):
 
     prompts = [
 
-        # Polite tone
-        "Please explain kindly: " + prompt,
-        "Could you politely explain: " + prompt,
+        f"I'm confused about this: {prompt}",
 
-        # Angry tone
-        "Explain this right now: " + prompt,
-        "Why is this so confusing? Explain: " + prompt,
+        f"I'm really curious about this topic: {prompt}",
 
-        # Excited tone
-        "Wow! Can you explain this amazing topic: " + prompt,
-        "I'm really curious! Explain: " + prompt,
+        f"Please help me understand this clearly: {prompt}",
 
-        # Sad tone
-        "I'm feeling a bit lost, please explain: " + prompt,
-        "This topic makes me confused and sad, explain: " + prompt,
+        f"This concept seems complicated: {prompt}",
 
-        # Fearful tone
-        "I'm worried I don't understand this, explain: " + prompt,
-        "This topic scares me, please explain: " + prompt,
-
-        # Sarcastic tone
-        "Obviously everyone knows this... but explain: " + prompt,
-        "Maybe I'm the only one who doesn't get it, explain: " + prompt,
-
-        # Curious tone
-        "I'm really curious about this, explain: " + prompt,
-        "Can you help me understand: " + prompt
+        f"I don't fully understand {prompt}, explain"
     ]
 
     return prompts

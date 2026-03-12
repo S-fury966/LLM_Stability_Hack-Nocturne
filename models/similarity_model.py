@@ -9,7 +9,7 @@ class SimilarityModel:
 
         self.model = SentenceTransformer(
             "all-MiniLM-L6-v2",
-            device="cuda"
+            device="cpu"
         )
 
     def embed(self, texts):
