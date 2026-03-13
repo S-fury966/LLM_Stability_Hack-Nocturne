@@ -2,67 +2,72 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ShieldAlert, 
-  BrainCircuit, 
-  AlertTriangle, 
-  Sparkles, 
-  Activity,
-  ArrowLeft,
-  RefreshCw,
-  BarChart3,
-  Map
+  LayoutDashboard, 
+  Activity, 
+  Map as MapIcon, 
+  LineChart, 
+  BarChart2, 
+  ChevronLeft, 
+  Send, 
+  ShieldAlert,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [basePrompt, setBasePrompt] = useState('');
+  const [prompt, setPrompt] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState(null);
+  const [activeTab, setActiveTab] = useState('summary');
 
+  // Smooth scroll to specific sections
+  const scrollToSection = (id) => {
+    setActiveTab(id);
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Connect to Python Backend
   const handleAnalyze = async () => {
-    if (!basePrompt) return;
+    // FIX 1: Changed basePrompt to prompt
+    if (!prompt.trim()) return; 
     setIsAnalyzing(true);
     
     try {
-      // 1. Send the POST request to your FastAPI backend
       const response = await fetch("http://127.0.0.1:8000/analyze", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        // We wrap the basePrompt in a JSON object that matches your Pydantic model
-        body: JSON.stringify({ prompt: basePrompt }), 
+        // FIX 2: Changed basePrompt to prompt
+        body: JSON.stringify({ prompt: prompt }), 
       });
 
       if (!response.ok) {
         throw new Error(`Backend error: ${response.status}`);
       }
 
-      // 2. Parse the JSON response from Python
       const data = await response.json();
       console.log("Success! Backend Data:", data);
 
-      // 3. Update the UI state using the real metrics from your backend
-      // Note: We multiply by 100 if your python backend returns a decimal like 0.62
+      // FIX 3: Mapped keys exactly to what the HTML expects (score, status, summary)
       setResults({
-        stabilityScore: Math.round(data.metrics.final_score * 100), 
-        
-        // Custom logic to flag vulnerabilities based on your python hallucination risk
-        vulnerabilities: data.metrics.hallucination_risk > 0.4 ? 3 : 0, 
-        
+        score: Math.round(data.metrics.final_score * 100), 
+        status: data.metrics.final_interpretation || "Analyzed",
         summary: `Analysis complete. Overall stability is ${data.metrics.final_interpretation}. Graph score: ${data.metrics.graph_score}. Hallucination assessment: ${data.metrics.hallucination_interpretation}.`,
-        
-        // We'll save the matrix data here so you can use it for the heatmap later
         matrixData: data.visualization_data.similarity_matrix 
       });
 
     } catch (error) {
       console.error("Failed to fetch:", error);
-      // Fallback UI if the backend is off or crashes
+      // Fallback UI
       setResults({
-        stabilityScore: 0,
-        vulnerabilities: "!",
-        summary: "Connection failed. Please ensure your FastAPI server is running on port 8000."
+        score: 0,
+        status: "Error",
+        summary: "Connection failed. Please ensure your FastAPI server is running on port 8000 and CORS is enabled."
       });
     } finally {
       setIsAnalyzing(false);
@@ -71,164 +76,200 @@ const Dashboard = () => {
 
   const handleReset = () => {
     setResults(null);
-    setBasePrompt('');
+    setPrompt(''); // FIX 4: Changed setBasePrompt to setPrompt
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-cyan-500/30 flex flex-col">
-      {/* Background Glows */}
-      <div className="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-cyan-600/5 blur-[120px] pointer-events-none" />
-      <div className="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/5 blur-[120px] pointer-events-none" />
-
-      {/* Top Navbar */}
-      <nav className="bg-[#020617]/80 backdrop-blur-lg border-b border-white/10 sticky top-0 z-50 py-4">
-        <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/')} className="text-slate-400 hover:text-white transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-purple-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
-              <ShieldAlert className="w-4 h-4 text-white" />
-            </div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Aegis Workspace</h1>
-          </div>
+    <div className="flex h-screen bg-[#020617] text-slate-200 overflow-hidden font-sans selection:bg-cyan-500/30">
+      
+      {/* SIDEBAR */}
+      <aside className="w-64 border-r border-white/10 bg-[#020617]/80 backdrop-blur-xl flex flex-col z-20">
+        <div className="p-6 border-b border-white/10">
+          <button 
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 text-sm"
+          >
+            <ChevronLeft className="w-4 h-4" /> Back to Home
+          </button>
           
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-xs font-medium text-emerald-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              System Ready
-            </span>
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-purple-500 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+              <ShieldAlert className="w-5 h-5 text-white" />
+            </div>
+            <h1 className="text-xl font-bold text-white tracking-tight">Aegis</h1>
           </div>
         </div>
-      </nav>
 
-      {/* Main Content */}
-      <main className="flex-grow max-w-7xl mx-auto px-6 py-8 w-full">
-        <div className="grid lg:grid-cols-12 gap-8 h-full">
+        <nav className="flex-1 overflow-y-auto p-4 space-y-2">
+          <p className="px-4 text-xs font-bold text-slate-500 uppercase tracking-wider mb-4 mt-2">Navigation</p>
           
-          {/* LEFT COLUMN: Clean Prompt Input */}
-          <div className="lg:col-span-4 flex flex-col space-y-6">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-sm flex-grow flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 text-cyan-400">
-                  <BrainCircuit className="w-5 h-5" />
-                  <h2 className="font-bold text-white text-lg">Target Prompt</h2>
-                </div>
-                {results && (
-                  <button onClick={handleReset} className="text-xs text-slate-400 hover:text-white transition-colors">
-                    Clear
-                  </button>
-                )}
-              </div>
-              
-              <p className="text-sm text-slate-400 mb-4">
-                Enter the exact query you want Aegis to automatically map and stress-test.
-              </p>
+          <SidebarLink 
+            icon={<LayoutDashboard />} label="Summary & Score" 
+            isActive={activeTab === 'summary'} onClick={() => scrollToSection('summary')} 
+          />
+          <SidebarLink 
+            icon={<Activity />} label="Similarity Heatmap" 
+            isActive={activeTab === 'heatmap'} onClick={() => scrollToSection('heatmap')} 
+          />
+          <SidebarLink 
+            icon={<MapIcon />} label="Stability Map" 
+            isActive={activeTab === 'stability-map'} onClick={() => scrollToSection('stability-map')} 
+          />
+          <SidebarLink 
+            icon={<LineChart />} label="Sensitivity Curve" 
+            isActive={activeTab === 'sensitivity'} onClick={() => scrollToSection('sensitivity')} 
+          />
+          <SidebarLink 
+            icon={<BarChart2 />} label="Stability Landscape" 
+            isActive={activeTab === 'landscape'} onClick={() => scrollToSection('landscape')} 
+          />
+        </nav>
+      </aside>
 
-              <textarea 
-                className="w-full flex-grow min-h-[300px] p-4 bg-[#020617]/50 border border-white/10 rounded-xl text-white placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all resize-none text-lg leading-relaxed shadow-inner"
-                placeholder="Type your prompt here..."
-                value={basePrompt}
-                onChange={(e) => setBasePrompt(e.target.value)}
-                disabled={isAnalyzing}
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 overflow-y-auto relative scroll-smooth">
+        {/* Background Glows */}
+        <div className="fixed top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-cyan-600/10 blur-[120px] pointer-events-none" />
+        <div className="fixed bottom-[-10%] left-[20%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[120px] pointer-events-none" />
+
+        <div className="max-w-5xl mx-auto p-8 lg:p-12 space-y-24">
+          
+          {/* SECTION 1: Prompt Input & Summary */}
+          <section id="summary" className="space-y-8 pt-4">
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-2">Prompt Analysis</h2>
+              <p className="text-slate-400">Enter your baseline prompt below to stress-test its logic and stability.</p>
+            </div>
+
+            {/* Input Box */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-2 backdrop-blur-md shadow-xl">
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder="e.g., Explain the theory of relativity as if I were a 5-year-old..."
+                className="w-full h-32 bg-transparent text-white placeholder-slate-500 p-4 focus:outline-none resize-none"
               />
-            </motion.div>
-
-            <motion.button 
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              onClick={handleAnalyze}
-              disabled={!basePrompt || isAnalyzing}
-              className={`w-full py-5 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all shadow-lg ${
-                basePrompt && !isAnalyzing 
-                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:scale-[1.02] shadow-cyan-500/25' 
-                  : 'bg-white/5 text-slate-500 cursor-not-allowed border border-white/10'
-              }`}
-            >
-              {isAnalyzing ? (
-                <><RefreshCw className="w-6 h-6 animate-spin" /> Scanning...</>
-              ) : (
-                <><Sparkles className="w-6 h-6" /> Run Full Analysis</>
-              )}
-            </motion.button>
-          </div>
-
-          {/* RIGHT COLUMN: Results Dashboard */}
-          <div className="lg:col-span-8 flex flex-col">
-            {!results && !isAnalyzing && (
-              <div className="flex-grow flex flex-col items-center justify-center border-2 border-dashed border-white/10 rounded-2xl bg-white/5 backdrop-blur-sm min-h-[500px]">
-                <Activity className="w-20 h-20 text-slate-600 mb-6" />
-                <h3 className="text-2xl font-bold text-slate-400 mb-2">Awaiting Input</h3>
-                <p className="text-slate-500 text-center max-w-md text-lg">
-                  Submit a prompt to generate a comprehensive stability map and sensitivity curve.
-                </p>
+              <div className="flex justify-between items-center p-2 border-t border-white/10 mt-2">
+                <div className="flex gap-2">
+                  <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 text-xs border border-purple-500/20">Semantic Tiers: 3</span>
+                  <span className="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs border border-cyan-500/20">Emotions: 5</span>
+                </div>
+                <button 
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing || !prompt.trim()}
+                  className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold rounded-xl hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isAnalyzing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze Prompt'}
+                </button>
               </div>
-            )}
+            </div>
 
-            {isAnalyzing && (
-              <div className="flex-grow flex flex-col items-center justify-center border border-cyan-500/20 rounded-2xl bg-cyan-500/5 backdrop-blur-sm min-h-[500px]">
-                <div className="relative w-28 h-28 mb-8">
-                  <div className="absolute inset-0 border-4 border-cyan-500/20 rounded-full"></div>
-                  <div className="absolute inset-0 border-4 border-cyan-400 rounded-full border-t-transparent animate-spin"></div>
-                  <div className="absolute inset-0 flex items-center justify-center text-cyan-400"><BrainCircuit className="w-10 h-10 animate-pulse" /></div>
-                </div>
-                <h3 className="text-3xl font-bold text-white mb-3 tracking-wide">Mapping Vectors...</h3>
-                <p className="text-cyan-400 text-lg animate-pulse">Running automated perturbations</p>
-              </div>
-            )}
-
-            {results && !isAnalyzing && (
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 flex-grow flex flex-col">
-                
-                {/* Score Cards */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm">
-                    <p className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Overall Stability Score</p>
-                    <div className="flex items-end gap-2 mb-4">
-                      <span className="text-6xl font-black text-white">{results.stabilityScore}</span>
-                      <span className="text-2xl text-slate-500 font-bold mb-1">/100</span>
-                    </div>
-                    <div className="w-full bg-slate-800 rounded-full h-3">
-                      <div className="h-3 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-cyan-400" style={{ width: `${results.stabilityScore}%` }}></div>
-                    </div>
+            {/* Results Area (Shows after analysis) */}
+            {results && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} 
+                className="grid md:grid-cols-3 gap-6 pt-4"
+              >
+                {/* Score Card */}
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md flex flex-col justify-center items-center text-center relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <p className="text-slate-400 font-medium mb-2">Overall Stability Score</p>
+                  <div className="flex items-baseline gap-1 mb-2">
+                    <span className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">{results.score}</span>
+                    <span className="text-xl text-slate-500">/100</span>
                   </div>
-                  
-                  <div className="bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-sm flex flex-col justify-between">
-                    <div>
-                      <p className="text-slate-400 text-sm font-bold uppercase tracking-wider mb-3">Analysis Summary</p>
-                      <p className="text-slate-200 text-lg leading-relaxed">{results.summary}</p>
-                    </div>
-                    <div className="mt-6 inline-flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-4 py-2 rounded-lg text-red-400 font-bold self-start">
-                      <AlertTriangle className="w-5 h-5" />
-                      {results.vulnerabilities} High-Risk Flaws
-                    </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 text-sm font-bold border border-emerald-500/20">
+                    <Sparkles className="w-4 h-4" /> {results.status}
                   </div>
                 </div>
 
-                {/* Heatmap Visualization Placeholder */}
-                <div className="bg-white/5 border border-white/10 p-6 rounded-2xl backdrop-blur-sm flex-grow flex flex-col">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                      <Map className="w-5 h-5 text-cyan-400" />
-                      Semantic Heatmap
-                    </h3>
-                  </div>
-                  <div className="flex-grow min-h-[250px] rounded-xl border border-white/5 bg-[#020617] flex items-center justify-center relative overflow-hidden">
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-                    <div className="text-center z-10">
-                      <Map className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                      <p className="text-slate-400 font-medium text-lg">[ Backend Heatmap Rendering Here ]</p>
-                    </div>
-                  </div>
+                {/* Detailed Summary Card */}
+                <div className="md:col-span-2 bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
+                  <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-cyan-400" /> Detailed Summary
+                  </h3>
+                  <p className="text-slate-300 leading-relaxed">
+                    {results.summary}
+                  </p>
                 </div>
-
               </motion.div>
             )}
-          </div>
+          </section>
+
+          {/* SECTION 2: Similarity Heatmap */}
+          <section id="heatmap" className="scroll-mt-12 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2 mb-2">
+                <Activity className="text-cyan-400" /> Similarity Heatmap
+              </h2>
+              <p className="text-slate-400">Visualizes the cosine similarity between the baseline prompt and perturbed outputs.</p>
+            </div>
+            <GraphPlaceholder title="Heatmap Rendering Engine Pending" />
+          </section>
+
+          {/* SECTION 3: Stability Map */}
+          <section id="stability-map" className="scroll-mt-12 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2 mb-2">
+                <MapIcon className="text-purple-400" /> Stability Map
+              </h2>
+              <p className="text-slate-400">Maps structural logical degradation across Small, Moderate, and Huge semantic shifts.</p>
+            </div>
+            <GraphPlaceholder title="Stability Map Rendering Engine Pending" />
+          </section>
+
+          {/* SECTION 4: Sensitivity Curve */}
+          <section id="sensitivity" className="scroll-mt-12 space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2 mb-2">
+                <LineChart className="text-blue-400" /> Sensitivity Curve
+              </h2>
+              <p className="text-slate-400">Tracks how rapidly the LLM hallucinates as emotional framing intensity increases.</p>
+            </div>
+            <GraphPlaceholder title="Curve Rendering Engine Pending" />
+          </section>
+
+          {/* SECTION 5: Stability Landscape */}
+          <section id="landscape" className="scroll-mt-12 space-y-6 pb-24">
+            <div>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2 mb-2">
+                <BarChart2 className="text-emerald-400" /> Stability Landscape
+              </h2>
+              <p className="text-slate-400">A 3D representation of prompt robustness combining semantic and emotional vectors.</p>
+            </div>
+            <GraphPlaceholder title="3D Landscape Engine Pending" />
+          </section>
 
         </div>
       </main>
     </div>
   );
 };
+
+// Helper component for Sidebar Links
+const SidebarLink = ({ icon, label, isActive, onClick }) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-left ${
+      isActive 
+        ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-400 border border-cyan-500/20' 
+        : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
+    }`}
+  >
+    {React.cloneElement(icon, { className: 'w-5 h-5' })}
+    {label}
+  </button>
+);
+
+// Helper component for Graph Placeholders
+const GraphPlaceholder = ({ title }) => (
+  <div className="w-full h-[400px] bg-[#0f172a]/50 border border-white/5 rounded-2xl flex flex-col items-center justify-center text-slate-500 relative overflow-hidden">
+    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.03)_1px,transparent_1px)] [background-size:20px_20px]" />
+    <Activity className="w-12 h-12 mb-4 opacity-20" />
+    <p className="font-mono text-sm relative z-10">{title}</p>
+    <p className="text-xs mt-2 opacity-50 relative z-10">Awaiting Python Integration</p>
+  </div>
+);
 
 export default Dashboard;
