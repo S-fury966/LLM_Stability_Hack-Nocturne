@@ -1,20 +1,21 @@
-# Core ML libraries
+# --- Web API Framework ---
+fastapi
+uvicorn
+pydantic
+
+# --- Core Machine Learning ---
 torch
 transformers
 sentence-transformers
 scikit-learn
 numpy
 
-# Graph analysis
+# --- Graph Analysis ---
 networkx
 
-# Visualization
-matplotlib
-seaborn
-
-# External knowledge verification
+# --- External Verification ---
 wikipedia
 
-# Utilities (commonly required by transformers)
+# --- Utilities ---
 tqdm
 requests
