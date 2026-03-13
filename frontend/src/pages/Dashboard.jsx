@@ -174,6 +174,75 @@ const PlotlyStabilityMap = ({ data }) => {
     />
   );
 };
+// ─── Safe Plotly wrapper for Sensitivity Curve (Line Chart) ────────────
+const PlotlySensitivityCurve = ({ data }) => {
+  const containerRef = useRef(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !data) return;
+    let cancelled = false;
+
+    import('plotly.js-dist-min')
+      .then((module) => {
+        if (cancelled || !containerRef.current) return;
+        const Plotly = module.default || module;
+
+        const yData = Array.isArray(data) ? data : data.scores || data.y || []; 
+        const xData = Array.from({ length: yData.length }, (_, i) => `P${i + 1}`);
+
+        Plotly.newPlot(
+          containerRef.current,
+          [{
+            x: xData,
+            y: yData,
+            type: 'scatter',
+            mode: 'lines+markers',
+            // Blue styling to match your UI and the target image!
+            line: { color: '#3b82f6', width: 4, shape: 'spline' }, 
+            marker: { size: 10, color: '#60a5fa', line: { width: 2, color: '#fff' } },
+            fill: 'tozeroy', // Creates the shaded gradient below the line
+            fillcolor: 'rgba(59, 130, 246, 0.1)'
+          }],
+          {
+            autosize: true,
+            margin: { t: 20, l: 40, r: 20, b: 40 },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#94a3b8' },
+            xaxis: { title: 'Perturbed Prompts', gridcolor: '#1e293b' },
+            yaxis: { title: 'Degradation Variance', gridcolor: '#1e293b' }
+          },
+          { responsive: true, displayModeBar: false }
+        );
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      });
+
+    return () => {
+      cancelled = true;
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+    };
+  }, [data]);
+
+  if (error) {
+    return (
+      <div className="w-full h-[400px] border border-red-500/30 rounded-2xl bg-red-950/20 flex items-center justify-center">
+        <p className="text-red-400 font-mono text-sm">Plotly error: {error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-[400px] border border-white/10 rounded-2xl bg-[#0f172a]/50 overflow-hidden shadow-lg"
+    />
+  );
+};
 // ──────────────────────────────────────────────────────────────────────────
 
 const Dashboard = () => {
@@ -232,7 +301,9 @@ const Dashboard = () => {
         responses: data.responses,
         matrixData: safeMatrix.length > 0 ? safeMatrix : null,
         stabilityMapData: data.visualization_data?.prompt_scores || null,
-        sensitivityCurveData: null,
+        sensitivityCurveData: data.visualization_data?.prompt_scores 
+          ? data.visualization_data.prompt_scores.map(score => Math.max(0, 1 - score)) 
+          : null,
         landscapeData: null,
       });
 
@@ -466,7 +537,16 @@ const Dashboard = () => {
               </h2>
               <p className="text-slate-400">Tracks how rapidly the LLM hallucinates as emotional framing intensity increases.</p>
             </div>
-            <GraphPlaceholder title="Sensitivity Curve" dataLoaded={!!results?.sensitivityCurveData} />
+            
+            {/* NEW CODE HERE */}
+            {results?.sensitivityCurveData ? (
+              <SectionErrorBoundary>
+                <PlotlySensitivityCurve data={results.sensitivityCurveData} />
+              </SectionErrorBoundary>
+            ) : (
+              <GraphPlaceholder title="Sensitivity Curve" dataLoaded={false} />
+            )}
+
           </section>
 
           {/* SECTION 5: Stability Landscape */}
