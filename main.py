@@ -59,7 +59,7 @@ def interpret_hallucination(score):
 
 def main():
 
-    prompt = "which is the third planet from the sun"
+    prompt = "How to run a marathon?"
 
     print("\n==============================")
     print("Original Prompt:")

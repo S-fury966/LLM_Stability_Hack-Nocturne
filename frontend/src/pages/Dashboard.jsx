@@ -243,6 +243,80 @@ const PlotlySensitivityCurve = ({ data }) => {
     />
   );
 };
+
+// ─── Safe Plotly wrapper for 3D Stability Landscape ────────────────────
+const PlotlyStabilityLandscape = ({ zData }) => {
+  const containerRef = useRef(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!containerRef.current || !zData) return;
+    let cancelled = false;
+
+    import('plotly.js-dist-min')
+      .then((module) => {
+        if (cancelled || !containerRef.current) return;
+        const Plotly = module.default || module;
+
+        Plotly.newPlot(
+          containerRef.current,
+          [{
+            z: zData,
+            type: 'surface',
+            colorscale: 'Electric', // A beautiful dark-mode friendly glow
+            showscale: false, // Hides the colorbar to save space
+            contours: {
+              z: { 
+                show: true, 
+                usecolormap: true, 
+                highlightcolor: "#34d399", 
+                project: { z: true } 
+              }
+            }
+          }],
+          {
+            autosize: true,
+            margin: { t: 10, l: 10, r: 10, b: 10 }, // 3D graphs look best with tight margins
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#94a3b8' },
+            scene: {
+              xaxis: { title: 'Semantic Shift', gridcolor: '#1e293b', backgroundcolor: 'rgba(0,0,0,0)' },
+              yaxis: { title: 'Structural Shift', gridcolor: '#1e293b', backgroundcolor: 'rgba(0,0,0,0)' },
+              zaxis: { title: 'Stability', gridcolor: '#1e293b', backgroundcolor: 'rgba(0,0,0,0)' },
+              camera: { eye: { x: 1.5, y: 1.5, z: 1.2 } } // Sets the perfect default rotation
+            }
+          },
+          { responsive: true, displayModeBar: false }
+        );
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      });
+
+    return () => {
+      cancelled = true;
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
+    };
+  }, [zData]);
+
+  if (error) {
+    return (
+      <div className="w-full h-[500px] border border-red-500/30 rounded-2xl bg-red-950/20 flex items-center justify-center">
+        <p className="text-red-400 font-mono text-sm">Plotly error: {error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      ref={containerRef}
+      className="w-full h-[500px] border border-white/10 rounded-2xl bg-[#0f172a]/50 overflow-hidden shadow-lg cursor-move"
+    />
+  );
+};
 // ──────────────────────────────────────────────────────────────────────────
 
 const Dashboard = () => {
@@ -304,7 +378,7 @@ const Dashboard = () => {
         sensitivityCurveData: data.visualization_data?.prompt_scores 
           ? data.visualization_data.prompt_scores.map(score => Math.max(0, 1 - score)) 
           : null,
-        landscapeData: null,
+        landscapeData: safeMatrix.length > 0 ? safeMatrix : null,
       });
 
     } catch (error) {
@@ -519,7 +593,6 @@ const Dashboard = () => {
               <p className="text-slate-400">Maps structural logical degradation across Small, Moderate, and Huge semantic shifts.</p>
             </div>
             
-            {/* NEW CODE HERE */}
             {results?.stabilityMapData ? (
               <SectionErrorBoundary>
                 <PlotlyStabilityMap data={results.stabilityMapData} />
@@ -538,7 +611,6 @@ const Dashboard = () => {
               <p className="text-slate-400">Tracks how rapidly the LLM hallucinates as emotional framing intensity increases.</p>
             </div>
             
-            {/* NEW CODE HERE */}
             {results?.sensitivityCurveData ? (
               <SectionErrorBoundary>
                 <PlotlySensitivityCurve data={results.sensitivityCurveData} />
@@ -557,7 +629,15 @@ const Dashboard = () => {
               </h2>
               <p className="text-slate-400">A 3D representation of prompt robustness combining semantic and emotional vectors.</p>
             </div>
-            <GraphPlaceholder title="Stability Landscape" dataLoaded={!!results?.landscapeData} />
+            
+            {results?.landscapeData ? (
+              <SectionErrorBoundary>
+                <PlotlyStabilityLandscape zData={results.landscapeData} />
+              </SectionErrorBoundary>
+            ) : (
+              <GraphPlaceholder title="Stability Landscape" dataLoaded={false} />
+            )}
+            
           </section>
 
         </div>
