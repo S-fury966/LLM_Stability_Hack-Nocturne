@@ -164,11 +164,7 @@ const Dashboard = () => {
                 placeholder="e.g., Explain the theory of relativity as if I were a 5-year-old..."
                 className="w-full h-32 bg-transparent text-white placeholder-slate-500 p-4 focus:outline-none resize-none"
               />
-              <div className="flex justify-between items-center p-2 border-t border-white/10 mt-2">
-                <div className="flex gap-2">
-                  <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-400 text-xs border border-purple-500/20">Semantic Tiers: 3</span>
-                  <span className="px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 text-xs border border-cyan-500/20">Emotions: 5</span>
-                </div>
+              <div className="flex justify-end items-center p-2 border-t border-white/10 mt-2">
                 <button 
                   onClick={handleAnalyze}
                   disabled={isAnalyzing || !prompt.trim()}
