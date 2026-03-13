@@ -19,19 +19,54 @@ const Dashboard = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [results, setResults] = useState(null);
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!basePrompt) return;
     setIsAnalyzing(true);
     
-    // Simulate your Python Backend Analysis (this will be replaced by your fetch call later)
-    setTimeout(() => {
-      setResults({
-        stabilityScore: 62,
-        vulnerabilities: 4,
-        summary: "Logic degraded significantly under structural perturbation. Entity tracking failed when urgency was introduced into the context.",
+    try {
+      // 1. Send the POST request to your FastAPI backend
+      const response = await fetch("http://127.0.0.1:8000/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        // We wrap the basePrompt in a JSON object that matches your Pydantic model
+        body: JSON.stringify({ prompt: basePrompt }), 
       });
+
+      if (!response.ok) {
+        throw new Error(`Backend error: ${response.status}`);
+      }
+
+      // 2. Parse the JSON response from Python
+      const data = await response.json();
+      console.log("Success! Backend Data:", data);
+
+      // 3. Update the UI state using the real metrics from your backend
+      // Note: We multiply by 100 if your python backend returns a decimal like 0.62
+      setResults({
+        stabilityScore: Math.round(data.metrics.final_score * 100), 
+        
+        // Custom logic to flag vulnerabilities based on your python hallucination risk
+        vulnerabilities: data.metrics.hallucination_risk > 0.4 ? 3 : 0, 
+        
+        summary: `Analysis complete. Overall stability is ${data.metrics.final_interpretation}. Graph score: ${data.metrics.graph_score}. Hallucination assessment: ${data.metrics.hallucination_interpretation}.`,
+        
+        // We'll save the matrix data here so you can use it for the heatmap later
+        matrixData: data.visualization_data.similarity_matrix 
+      });
+
+    } catch (error) {
+      console.error("Failed to fetch:", error);
+      // Fallback UI if the backend is off or crashes
+      setResults({
+        stabilityScore: 0,
+        vulnerabilities: "!",
+        summary: "Connection failed. Please ensure your FastAPI server is running on port 8000."
+      });
+    } finally {
       setIsAnalyzing(false);
-    }, 2500);
+    }
   };
 
   const handleReset = () => {
