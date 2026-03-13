@@ -21,7 +21,34 @@ import {
   Shield,
   CheckCircle
 } from 'lucide-react';
-
+const TeamMember = ({ name, role, initial, imgSrc, github, linkedin }) => (
+  <motion.div 
+    whileHover={{ y: -10 }} 
+    className="p-8 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md text-center group transition-all hover:bg-white/10"
+  >
+    <div className="w-28 h-28 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 mx-auto mb-6 p-1 shadow-lg shadow-cyan-500/20">
+      <div className="w-full h-full rounded-full bg-[#020617] flex items-center justify-center overflow-hidden">
+        {/* Only show image if imgSrc is NOT a placeholder string */}
+        {imgSrc && !imgSrc.includes('path-to-your') ? (
+          <img src={imgSrc} alt={name} className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-3xl font-bold text-cyan-400">{initial}</span>
+        )}
+      </div>
+    </div>
+    <h3 className="text-xl font-bold text-white mb-1">{name}</h3>
+    <p className="text-cyan-400 text-sm font-medium mb-4">{role}</p>
+    <div className="flex justify-center gap-4 text-slate-500">
+      {/* clickable links with target="_blank" so they open in a new tab */}
+      <a href={github} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+        <Github className="w-5 h-5" />
+      </a>
+      <a href={linkedin} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+        <Linkedin className="w-5 h-5" />
+      </a>
+    </div>
+  </motion.div>
+);
 const LandingPage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -151,17 +178,11 @@ const LandingPage = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
-              <a href="#home" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Home</a>
-              <a href="#features" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Features</a>
-              <a href="#how-it-works" className="text-sm font-medium text-slate-300 hover:text-white transition-colors">How it Works</a>
-              <button 
-                onClick={handleLaunch} 
-                className="px-5 py-2.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-white text-sm font-bold rounded-lg shadow-lg shadow-cyan-500/30 transition-all hover:scale-105"
-              >
-                Launch System
-              </button>
+              <a href="#home" className="text-slate-400 hover:text-white transition-colors">Home</a>
+              <a href="#features" className="text-slate-400 hover:text-white transition-colors">Features</a>
+              <a href="#how-it-works" className="text-slate-400 hover:text-white transition-colors">How it Works</a>
+              <a href="#team" className="text-slate-400 hover:text-white transition-colors">Meet the Team</a>
             </div>
-
             {/* Mobile Menu Button */}
             <button className="md:hidden text-white p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -198,9 +219,20 @@ const LandingPage = () => {
                 <span className="text-sm font-medium text-slate-300">Hack-Nocturne 2.0 Proposal</span>
               </motion.div>
 
-              <motion.h1 variants={fadeInUp} className="text-5xl lg:text-7xl font-extrabold leading-tight tracking-tight text-white">
+              <motion.h1 
+                variants={fadeInUp} 
+                className="text-5xl lg:text-7xl font-extrabold leading-tight tracking-tight text-white"
+                >
+                {/* Moving Gradient for Aegis */}
+                <span className="text-6xl lg:text-8xl text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 animate-gradient-flow mr-2">
+                Aegis:
+                </span> 
+                <br />
                 Stress-Test Your <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500">LLM Reasoning</span>
+                {/* Moving Gradient for LLM Reasoning */}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-cyan-400 to-blue-500 animate-gradient-flow">
+                LLM Reasoning
+                </span>
               </motion.h1>
 
               <motion.p variants={fadeInUp} className="text-lg md:text-xl text-slate-400 leading-relaxed max-w-xl">
@@ -341,15 +373,63 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
+      <section id="team" className="py-32 relative z-10">
+        <div className="max-w-7xl mx-auto px-6">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeInUp} className="text-center mb-20">
+            <h2 className="text-4xl lg:text-5xl font-bold text-white mb-4">
+              Meet Team <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-500 animate-gradient-flow">Code Blooded</span>
+            </h2>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              The minds behind Aegis, dedicated to making LLM reasoning more robust and reliable.
+            </p>
+          </motion.div>
 
-      {/* Footer */}
-      <footer className="border-t border-white/10 bg-[#020617] pt-16 pb-8 px-6">
-        <div className="max-w-7xl mx-auto text-center">
-            <p className="text-sm text-slate-500">© {new Date().getFullYear()} Aegis by Team Code Blooded. Built for Hack-Nocturne 2.0.</p>
+          {/* This grid handles 4 members (2x2 on tablet, 1x4 on desktop) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+            <TeamMember 
+                name="Ruhani Raman" 
+                role="Frontend Developer" 
+                initial="RR" 
+                imgSrc={new URL('../assets/ruhani.jpeg', import.meta.url).href}
+                github="https://https://github.com/ruhaniraman"
+                linkedin="https://https://www.linkedin.com/in/ruhani-raman-340043327/"
+            />
+            <TeamMember 
+                name="Manosh S" 
+                role="Backend Developer" 
+                initial="MS" 
+                imgSrc={new URL('../assets/manosh.jpeg', import.meta.url).href}
+                github="https://github.com/moserkfr" 
+                linkedin="https://www.linkedin.com/in/manosh-suresh/"
+            />
+            <TeamMember 
+                name="Rehan Mulla" 
+                role="Backend Developer" 
+                initial="RM" 
+                imgSrc={new URL('../assets/rehan.jpeg', import.meta.url).href}
+                github="https://github.com/rehan-mulla" 
+                linkedin="https://www.linkedin.com/in/rehan-mulla-8719b62b8/"
+            />
+            <TeamMember 
+                name="Sayan Soumya" 
+                role="Backend Developer" 
+                initial="SS" 
+                imgSrc={new URL('../assets/sayan.jpeg', import.meta.url).href} 
+                github="https://github.com/S-fury966" 
+                linkedin="https://www.linkedin.com/in/sayan-soumya-303121354/"
+            />
+            </div>
         </div>
+      </section>
+
+      <footer className="py-12 border-t border-white/5 text-center relative z-10">
+        <p className="text-slate-500 text-sm">
+          © {new Date().getFullYear()} Aegis by Team Code Blooded. Built for Hack-Nocturne 2.0.
+        </p>
       </footer>
-    </div>
+    </div> // This closes the main div
   );
 };
 
 export default LandingPage;
+   
